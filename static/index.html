@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>KDS Screen</title>
+<link rel="preconnect" href="/ws" />
+<style>
+:root { --bg: #0b1220; --card: #141c2b; --accent: #4ade80; --muted:
+#94a3b8; }
+html, body { margin:0; height:100%; background:var(--bg); color:#e2e8f0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+.wrap { padding: 16px; }
+header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+header h1 { font-size: 22px; margin:0; }
+#status { font-size: 13px; color: var(--muted); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.card { background: var(--card); border-radius: 16px; padding: 14px; box-shadow: 0 4px 20px rgba(0,0,0,0.25); border: 1px solid rgba(148,163,184,0.15); }
+.card.new { outline: 2px solid var(--accent); }
+.row { display:flex; align-items:center; justify-content:space-between; gap: 8px; }
+.muted { color: var(--muted); font-size: 12px; }
+.items { margin: 8px 0 12px; line-height:1.4; }
+.badge { background: #1f2937; border: 1px solid rgba(148,163,184,0.2);
+padding:2px 8px; border-radius: 999px; font-size:12px; }
+.btns { display:flex; gap:8px; }
+button { cursor:pointer; border:none; border-radius: 10px; padding:8px 10px; font-weight:600; }
+.btn-start { background:#60a5fa; }
+.btn-done { background:#22c55e; }
+.btn-bump { background:#f59e0b; }
+.pill { font-size: 11px; border-radius:999px; padding:3px 8px; }
+.pill.NEW { background:#334155; }
+.pill.COOKING { background:#0ea5e9; }
+.pill.DONE { background:#16a34a; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<h1>Kitchen Display</h1>
+<div id="status">Connecting…</div>
+</header>
+<div class="grid" id="orders"></div>
+</div>
+<script src="/static/kds.js"></script>
+</body>
+</html>

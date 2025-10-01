@@ -1,0 +1,55 @@
+{
+  "categories": [
+    {
+      "id": "tacos",
+      "name": "Tacos",
+      "items": [
+        {
+          "id": "taco_al_pastor",
+          "name": "Taco al Pastor",
+          "synonyms": ["pastor taco", "al pastor", "taco pastor", "pork taco"],
+          "price": 4.50,
+          "modifiers": {
+            "exclusions": ["cheese", "sour cream"],
+            "additions": [
+              { "id": "extra_salsa", "name": "Extra Salsa", "price": 0.50 },
+              { "id": "guacamole", "name": "Guacamole", "price": 1.50 }
+            ]
+          }
+        },
+        {
+          "id": "veggie_burrito",
+          "name": "Veggie Burrito",
+          "synonyms": ["vegetarian burrito", "veggie wrap", "burrito veggie", "veggie burritos"],
+          "price": 7.00,
+          "modifiers": {
+            "exclusions": ["cheese", "sour cream"],
+            "additions": [
+              { "id": "extra_salsa", "name": "Extra Salsa", "price": 0.50 },
+              { "id": "guacamole", "name": "Guacamole", "price": 1.50 }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "desserts",
+      "name": "Desserts",
+      "items": [
+        {
+          "id": "churros",
+          "name": "Churros",
+          "synonyms": ["fried dough", "sweet churros", "churro"],
+          "price": 3.00,
+          "modifiers": {
+            "exclusions": [],
+            "additions": [
+              { "id": "chocolate_dip", "name": "Chocolate Dip", "price": 1.00 }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
+
