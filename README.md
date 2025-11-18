@@ -19,44 +19,53 @@ curl -X POST http://localhost:5001/api/order -H 'Content-Type: application/json'
 to get feedback from a transaction:
 stripe listen --forward-to localhost:5001/webhook/stripe
 
-# screen shots of the interfaces and backend processing:
+# Screen shots of Interfaces and backend processing:
 
-A screenshot of the project interface across multiple screens
+<p>A screenshot of the project interface across multiple screens<br/>
 <img src="./media/kds_1.jpg" alt="A screenshot of the project interface across multiple screens" width="500" />
+</p>
 
 
-Mobile view of screen
+<p>Mobile view of screen<br/>
 <img src="./media/kds_2.jpg" alt="Mobile view of screen" width="500" />
+</p>
 
 
-A screenshot of the project interface
+<p>A screenshot of the project interface<br/>
 <img src="./media/kds_3.jpg" alt="A screenshot of the project interface" width="500" />
+</p>
 
 
-Multiple orders
+<p>Multiple orders<br/>
 <img src="./media/kds_4.jpg" alt="Multiple orders" width="500" />
+</p>
 
 
-Stripe backend
-<img src="./media/kds_5.jpg" alt="Stripe backend" width="500" />
+<p>Stripe backend<br/>
+<img src="./media/kds_5.jpg" alt="Stripe backend" width="500" /><br/>
 <img src="./media/kds_6.jpg" alt="Stripe backend" width="500" />
+</p>
 
 
-The Chatbot interface for taking orders
+<p>The Chatbot interface for taking orders<br/>
 <img src="./media/kds_7.png" alt="The Chatbot interface for taking orders" width="500" />
+</p>
 
 
-Stripe listener
+<p>Stripe listener<br/>
 <img src="./media/kds_8.jpg" alt="Stripe listener" width="500" />
+</p>
 
 
-Chatbot order screen
+<p>Chatbot order screen<br/>
 <img src="./media/kds_9.png" alt="Chatbot order screen" width="500" />
+</p>
 
-
-Web interface for taking orders
+<p>Web interface for taking orders<br/>
 <img src="./media/kds_10.png" alt="Web interface for taking orders" width="500" />
+</p>
 
 
-Mobile device screen
+<p>Mobile device screen<br/>
 <img src="./media/kds_11.png" alt="Mobile device screen" width="500" />
+</p>
