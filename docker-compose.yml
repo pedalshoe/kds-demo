@@ -1,0 +1,152 @@
+#version: "3.9"
+
+# ── KDS-AI Production Stack ───────────────────────────────────────────────────
+#
+# Services:
+#   kds-app   — Flask/gunicorn app (WebSocket-capable via gevent)
+#   ollama    — Local LLM server (llama3 + mistral + nomic-embed-text)
+#   chromadb  — Vector store for RAG
+#   nginx     — Reverse proxy + WebSocket upgrade
+#   n8n       — Workflow automation
+#
+# Quick start:
+#   cp .env.template .env   # fill in Stripe keys
+#   docker compose up -d
+#   docker compose exec ollama ollama pull llama3
+#   docker compose exec ollama ollama pull mistral
+#   docker compose exec ollama ollama pull nomic-embed-text
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Flask KDS application ───────────────────────────────────────────────────
+  kds-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kds-app
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      OLLAMA_BASE_URL: http://ollama:11434
+      CHROMA_DIR: /app/chroma_db
+      N8N_WEBHOOK_URL: http://n8n:5678/webhook/kds-orders
+    volumes:
+      - chroma_data:/app/chroma_db
+      - ./data:/app/data:ro
+    expose:
+      - "8000"
+    depends_on:
+      ollama:
+        condition: service_healthy
+      chromadb:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/menu"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Ollama LLM server ───────────────────────────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    volumes:
+      - ollama_models:/root/.ollama
+    ports:
+      - "11434:11434"          # expose for local dev / health checks
+    healthcheck:
+      test: ["CMD", "/usr/bin/ollama", "list"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 120s       # Mac needs more time on first boot
+    # GPU support — uncomment if you have NVIDIA GPU + nvidia-container-toolkit
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+  # ── Model pull sidecar (runs once, pulls required models) ──────────────────
+  ollama-pull:
+    image: ollama/ollama:latest
+    container_name: ollama-pull
+    restart: "no"
+    depends_on:
+      ollama:
+        condition: service_healthy
+    entrypoint: >
+      sh -c "
+        ollama pull llama3 &&
+        ollama pull mistral &&
+        ollama pull nomic-embed-text &&
+        echo 'All models pulled.'
+      "
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+
+  # ── ChromaDB vector store ───────────────────────────────────────────────────
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: chromadb
+    restart: unless-stopped
+    volumes:
+      - chroma_data:/chroma/chroma
+    expose:
+      - "8001"
+    environment:
+      IS_PERSISTENT: "TRUE"
+      ANONYMIZED_TELEMETRY: "FALSE"
+
+  # ── Nginx reverse proxy ─────────────────────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/kds.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro   # mount TLS certs here for HTTPS
+    depends_on:
+      - kds-app
+
+  # ── n8n workflow automation ─────────────────────────────────────────────────
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n:/home/node/.n8n/workflows:ro  # auto-import workflow JSON
+    environment:
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER: admin
+      N8N_BASIC_AUTH_PASSWORD: changeme      # change in production!
+      WEBHOOK_URL: http://localhost:5678
+      GENERIC_TIMEZONE: America/New_York
+      # Set these in .env for Slack/email integrations
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+      KITCHEN_EMAIL: ${KITCHEN_EMAIL:-kitchen@example.com}
+      KDS_APP_URL: http://kds-app:8000
+
+
+volumes:
+  ollama_models:
+    driver: local
+  chroma_data:
+    driver: local
+  n8n_data:
+    driver: local
+
+
+networks:
+  default:
+    name: kds-network

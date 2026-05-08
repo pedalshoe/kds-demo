@@ -31,7 +31,7 @@ from .rag_pipeline import MenuRAGPipeline
 logger = logging.getLogger(__name__)
 
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-MODEL_ORDER = os.getenv("MODEL_ORDER", "llama3")      # order intent + chat
+MODEL_ORDER = os.getenv("MODEL_ORDER", "llama3.1")      # order intent + chat
 MODEL_RAG   = os.getenv("MODEL_RAG",   "mistral")    # RAG / upsell
 
 
@@ -280,8 +280,9 @@ class KDSOrchestrator:
 
     @staticmethod
     def _parse_intent(raw: str) -> Intent:
+        normalized_raw = raw.strip().lower()
         for intent in Intent:
-            if intent.value in raw:
+            if intent.value in normalized_raw:
                 return intent
         return Intent.UNKNOWN
 

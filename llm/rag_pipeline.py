@@ -19,7 +19,7 @@ from typing import Optional
 
 import chromadb
 from chromadb.config import Settings
-from langchain_community.embeddings import OllamaEmbeddings
+from langchain_ollama import OllamaEmbeddings
 
 logger = logging.getLogger(__name__)
 

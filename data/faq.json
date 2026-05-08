@@ -1,0 +1,42 @@
+[
+  {
+    "question": "Do you have vegetarian options?",
+    "answer": "Yes! Our Bean & Cheese Burrito and Veggie Quesadilla are fully vegetarian. Most items can also be modified — ask to substitute beans for meat on any taco."
+  },
+  {
+    "question": "What items are gluten-free?",
+    "answer": "Our corn tortillas are gluten-free. Flour tortillas contain gluten. The Taco Salad bowl (no tortilla shell) and rice bowls are gluten-free. Always inform your server of allergies."
+  },
+  {
+    "question": "Do you have dairy-free options?",
+    "answer": "Yes. Request 'no cheese, no sour cream' on any item. Our guacamole, salsas, and carnitas are all dairy-free."
+  },
+  {
+    "question": "What are your most popular items?",
+    "answer": "Our Taco al Pastor and Carnitas Burrito are customer favorites. For something lighter, the Street Taco combo is very popular at lunch."
+  },
+  {
+    "question": "Can I customize my order?",
+    "answer": "Absolutely. You can exclude ingredients like cheese, sour cream, onions, and cilantro, or add extras like guacamole, jalapeños, and extra salsa on any item."
+  },
+  {
+    "question": "What goes well with the Taco al Pastor?",
+    "answer": "The Taco al Pastor pairs beautifully with a side of elote (grilled corn) and a mango agua fresca. Adding pineapple and cilantro as toppings is a classic combination."
+  },
+  {
+    "question": "Are there any spicy options?",
+    "answer": "Our Habanero Salsa and the Birria Taco are our spiciest items. The al Pastor has a mild-medium heat. You can always add jalapeños to any item for extra heat."
+  },
+  {
+    "question": "What are your hours?",
+    "answer": "We are open Tuesday through Sunday, 11am to 9pm. Closed Mondays."
+  },
+  {
+    "question": "Do you accept credit cards?",
+    "answer": "Yes, we accept all major credit cards, Apple Pay, and Google Pay through our secure Stripe checkout."
+  },
+  {
+    "question": "Can I place an order in advance?",
+    "answer": "Yes! You can place orders up to 30 minutes in advance through our web or mobile interface. Just specify your pickup time in the order notes."
+  }
+]

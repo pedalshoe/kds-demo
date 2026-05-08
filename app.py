@@ -15,7 +15,7 @@ All original routes (order, checkout, stripe webhook, WebSocket) are unchanged.
 from flask import Flask, send_from_directory, request, jsonify
 from flask_sock import Sock
 import json
-from datetime import datetime
+from datetime import datetime, UTC
 import re
 from pathlib import Path
 import os
@@ -401,7 +401,7 @@ def api_order():
         if missing:
             return jsonify({"error": f"Missing required fields: {', '.join(missing)}"}), 400
 
-        payload.setdefault("created_at", datetime.utcnow().isoformat() + "Z")
+        payload.setdefault("created_at", datetime.now(UTC).isoformat().replace('+00:00', 'Z'))
         payload.setdefault("status", "NEW")
         payload.setdefault("source", "Web")
         payload.setdefault("table", "-")
