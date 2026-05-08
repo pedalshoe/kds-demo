@@ -14,6 +14,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -26,7 +27,7 @@ logger = logging.getLogger(__name__)
 CHROMA_DIR   = os.getenv("CHROMA_DIR", "./chroma_db")
 EMBED_MODEL  = os.getenv("EMBED_MODEL", "nomic-embed-text")  # fast local embeddings
 OLLAMA_URL   = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-COLLECTION   = "kds_menu_rag"
+COLLECTION_PREFIX = "kds_menu_rag_v2"
 
 
 class MenuRAGPipeline:
@@ -42,6 +43,7 @@ class MenuRAGPipeline:
     def __init__(self, menu_data: dict, faq_path: Optional[str] = None):
         self.menu_data = menu_data
         self.faq_path  = faq_path or str(Path(__file__).parent.parent / "data" / "faq.json")
+        self.collection_name = self._build_collection_name(EMBED_MODEL)
 
         self.embeddings = OllamaEmbeddings(
             model=EMBED_MODEL,
@@ -53,10 +55,7 @@ class MenuRAGPipeline:
             settings=Settings(anonymized_telemetry=False),
         )
 
-        self._collection = self._client.get_or_create_collection(
-            name=COLLECTION,
-            metadata={"hnsw:space": "cosine"},
-        )
+        self._collection = self._get_collection()
 
         self._ensure_indexed(menu_data)
 
@@ -79,13 +78,20 @@ class MenuRAGPipeline:
                 results["metadatas"][0],
                 results["distances"][0],
             ):
+                similarity_score = 1 - dist
+                score = max(0.0, min(1.0, similarity_score))
                 docs.append({
                     "text":      text,
                     "metadata":  meta,
-                    "score":     round(1 - dist, 4),  # cosine distance → similarity
+                    "score":     round(score, 4),
                 })
             return docs
         except Exception as e:
+            if self._is_dimension_mismatch(e):
+                logger.warning("Resetting RAG collection after dimension mismatch during query: %s", e)
+                self._reset_collection()
+                self._ensure_indexed(self.menu_data)
+                return self.retrieve(query, k)
             logger.error("RAG retrieve error: %s", e)
             return []
 
@@ -93,14 +99,23 @@ class MenuRAGPipeline:
         """Dynamically add a daily special to the RAG store."""
         doc_id   = f"special_{hashlib.md5(name.encode()).hexdigest()[:8]}"
         doc_text = f"Daily special: {name} (${price:.2f}) — {description}"
-        embedding = self.embeddings.embed_documents([doc_text])[0]
-        self._collection.upsert(
-            ids=[doc_id],
-            documents=[doc_text],
-            embeddings=[embedding],
-            metadatas=[{"type": "daily_spec", "name": name, "price": price}],
-        )
-        logger.info("Added daily special to RAG: %s", name)
+        try:
+            embedding = self.embeddings.embed_documents([doc_text])[0]
+            self._collection.upsert(
+                ids=[doc_id],
+                documents=[doc_text],
+                embeddings=[embedding],
+                metadatas=[{"type": "daily_spec", "name": name, "price": price}],
+            )
+            logger.info("Added daily special to RAG: %s", name)
+        except Exception as e:
+            if self._is_dimension_mismatch(e):
+                logger.warning("Resetting RAG collection after dimension mismatch during upsert: %s", e)
+                self._reset_collection()
+                self._ensure_indexed(self.menu_data)
+                self.add_daily_special(name, description, price)
+                return
+            raise
 
     def stats(self) -> dict:
         return {
@@ -115,31 +130,62 @@ class MenuRAGPipeline:
 
     def _ensure_indexed(self, menu_data: dict):
         """Index menu items if not already present (idempotent by doc id)."""
-        docs, ids, metas = self._build_menu_docs(menu_data)
-        faq_docs, faq_ids, faq_metas = self._build_faq_docs()
+        try:
+            docs, ids, metas = self._build_menu_docs(menu_data)
+            faq_docs, faq_ids, faq_metas = self._build_faq_docs()
 
-        all_docs  = docs  + faq_docs
-        all_ids   = ids   + faq_ids
-        all_metas = metas + faq_metas
+            all_docs  = docs  + faq_docs
+            all_ids   = ids   + faq_ids
+            all_metas = metas + faq_metas
 
-        existing = set(self._collection.get(ids=all_ids)["ids"])
-        new_docs  = [(d, i, m) for d, i, m in zip(all_docs, all_ids, all_metas) if i not in existing]
+            existing = set(self._collection.get(ids=all_ids)["ids"])
+            new_docs  = [(d, i, m) for d, i, m in zip(all_docs, all_ids, all_metas) if i not in existing]
 
-        if not new_docs:
-            logger.info("RAG vectorstore up-to-date (%d docs)", self._collection.count())
-            return
+            if not new_docs:
+                logger.info("RAG vectorstore up-to-date (%d docs)", self._collection.count())
+                return
 
-        logger.info("Indexing %d new documents into ChromaDB...", len(new_docs))
-        batch_docs, batch_ids, batch_metas = zip(*new_docs)
-        embeddings = self.embeddings.embed_documents(list(batch_docs))
+            logger.info("Indexing %d new documents into ChromaDB...", len(new_docs))
+            batch_docs, batch_ids, batch_metas = zip(*new_docs)
+            embeddings = self.embeddings.embed_documents(list(batch_docs))
 
-        self._collection.add(
-            ids=list(batch_ids),
-            documents=list(batch_docs),
-            embeddings=embeddings,
-            metadatas=list(batch_metas),
+            self._collection.add(
+                ids=list(batch_ids),
+                documents=list(batch_docs),
+                embeddings=embeddings,
+                metadatas=list(batch_metas),
+            )
+            logger.info("RAG indexing complete. Total docs: %d", self._collection.count())
+        except Exception as e:
+            if self._is_dimension_mismatch(e):
+                logger.warning("Resetting RAG collection after dimension mismatch during indexing: %s", e)
+                self._reset_collection()
+                self._ensure_indexed(menu_data)
+                return
+            raise
+
+    def _get_collection(self):
+        return self._client.get_or_create_collection(
+            name=self.collection_name,
+            metadata={"hnsw:space": "cosine", "embed_model": EMBED_MODEL},
         )
-        logger.info("RAG indexing complete. Total docs: %d", self._collection.count())
+
+    def _reset_collection(self):
+        try:
+            self._client.delete_collection(self.collection_name)
+        except Exception:
+            pass
+        self._collection = self._get_collection()
+
+    @staticmethod
+    def _build_collection_name(embed_model: str) -> str:
+        safe_model = re.sub(r"[^a-z0-9]+", "_", embed_model.lower()).strip("_")
+        return f"{COLLECTION_PREFIX}_{safe_model}"
+
+    @staticmethod
+    def _is_dimension_mismatch(exc: Exception) -> bool:
+        msg = str(exc).lower()
+        return "dimension" in msg and "collection dimensionality" in msg
 
     @staticmethod
     def _build_menu_docs(menu: dict) -> tuple[list, list, list]:

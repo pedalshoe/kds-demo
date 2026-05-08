@@ -2,7 +2,7 @@
 KDS-AI  —  app.py  (enhanced with LLM orchestration + RAG)
 ============================================================
 Additions over the original:
-  POST /api/chat          — now routes through KDSOrchestrator (llama3 + mistral)
+  POST /api/chat          — now routes through KDSOrchestrator (llama3.1 + mistral)
   POST /api/llm/chat      — raw LLM chat endpoint (demo / testing)
   GET  /api/llm/health    — health-check both Ollama models
   GET  /api/rag/stats     — vectorstore statistics
@@ -295,7 +295,7 @@ def api_chat():
 def api_llm_chat():
     """
     Demo endpoint — direct access to the LLM pipeline.
-    Body: { "text": "...", "model": "llama3|mistral" }
+    Body: { "text": "...", "model": "llama3.1|mistral" }
     """
     body  = request.get_json(silent=True) or {}
     text  = (body.get('text') or '').strip()

@@ -2,11 +2,11 @@
 KDS-AI LLM Orchestration Layer
 ================================
 Routes requests between two local Ollama models:
-  - llama3   : order intent extraction, conversational chat
+  - llama3.1 : order intent extraction, conversational chat
   - mistral  : menu RAG queries, upsell suggestions, dietary advice
 
 Pipeline:
-  user_text → IntentClassifier → (llama3 | mistral+RAG) → structured response
+  user_text → IntentClassifier → (llama3.1 | mistral+RAG) → structured response
 
 Production note: swap OllamaLLM base_url to your remote Ollama instance URL.
 """

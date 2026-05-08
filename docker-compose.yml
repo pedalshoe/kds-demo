@@ -4,7 +4,7 @@
 #
 # Services:
 #   kds-app   — Flask/gunicorn app (WebSocket-capable via gevent)
-#   ollama    — Local LLM server (llama3 + mistral + nomic-embed-text)
+#   ollama    — Local LLM server (llama3.1 + mistral + nomic-embed-text)
 #   chromadb  — Vector store for RAG
 #   nginx     — Reverse proxy + WebSocket upgrade
 #   n8n       — Workflow automation
@@ -12,7 +12,7 @@
 # Quick start:
 #   cp .env.template .env   # fill in Stripe keys
 #   docker compose up -d
-#   docker compose exec ollama ollama pull llama3
+#   docker compose exec ollama ollama pull llama3.1
 #   docker compose exec ollama ollama pull mistral
 #   docker compose exec ollama ollama pull nomic-embed-text
 # ─────────────────────────────────────────────────────────────────────────────
@@ -30,6 +30,8 @@ services:
     environment:
       OLLAMA_BASE_URL: http://ollama:11434
       CHROMA_DIR: /app/chroma_db
+      EMBED_MODEL: nomic-embed-text
+      ANONYMIZED_TELEMETRY: "FALSE"
       N8N_WEBHOOK_URL: http://n8n:5678/webhook/kds-orders
     volumes:
       - chroma_data:/app/chroma_db
@@ -39,6 +41,8 @@ services:
     depends_on:
       ollama:
         condition: service_healthy
+      ollama-pull:
+        condition: service_completed_successfully
       chromadb:
         condition: service_started
     healthcheck:
@@ -81,7 +85,7 @@ services:
         condition: service_healthy
     entrypoint: >
       sh -c "
-        ollama pull llama3 &&
+        ollama pull llama3.1 &&
         ollama pull mistral &&
         ollama pull nomic-embed-text &&
         echo 'All models pulled.'
