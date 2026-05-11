@@ -9,9 +9,20 @@
  - Slack notifications
  - Docker production stack
  - pytest suite
+ - Stripe
 
 # With Docker Run
 docker compose up -d
+
+use this convience script:
+
+Command				What it does
+./start-docker.sh		Start full stack
+./start-docker.sh --build	Rebuild kds-app image then start
+./start-docker.sh --clean	Wipe all volumes + rebuild from scratch (fixes chroma dimension issues)
+./start-docker.sh --stop	Stop all services cleanly
+./start-docker.sh --logs	Tail all container logs
+./start-docker.sh --status	Show container states
 
 # Check both models and latency
 curl http://localhost/api/llm/health | python3 -m json.tool
@@ -37,12 +48,35 @@ curl -X POST http://localhost/api/chat \
 # bring up n8n automation interface:
 In a new browser window: Browse to: http://localhost:5678
 
+# Run a test order and watch the n8n web:
+curl -X POST http://localhost:5001/api/order -H 'Content-Type: application/json' -d '{ "order_id":"A123", "source":"Web", "table":"5","items":[ {"name":"Taco al Pastor","qty":2,"mods":["no cheese","extra salsa"]}, {"name":"Churros","qty":1} ] }'
 
-# bring up a window to show the KDS ordering interface:
-In a new browser window, Browse to: http://localhost:5001
 
-# bring up the KDS
-In a new browser window, Browse to: http://localhost:5001/static/kds.html
+# bring up KDS
+Window 1: http://localhost:5001                    ← KDS kitchen display or: /static/kds.html
+Window 2: http://localhost:5001/static/chat.html   ← chatbot order entry
+Window 3: http://localhost:5001/static/order.html  ← web order form
+
+# start Stripe:
+stripe listen --forward-to localhost:5001/webhook/stripe
+
+Test Stripe:
+curl -X POST http://localhost:5001/api/checkout \
+  -H "Content-Type: application/json" \
+  -d '{
+    "cart": [
+      {"id": "taco_pastor", "qty": 2, "mods": {"additions": [], "exclusions": []}}
+    ],
+    "source": "Web",
+    "table": "3"
+  }'
+
+# Running the pplication:
+Place an order in Window 2 or 3 and watch it appear instantly in Window 1 with a beep.
+
+# Bring down the environment:
+docker compose down
+
 
 
 # Without Docker Run

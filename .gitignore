@@ -33,6 +33,7 @@ chroma_db/
 
 # Logs
 *.log
+logs/*
 
 # Editor / IDE
 .idea/
