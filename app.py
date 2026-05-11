@@ -66,6 +66,7 @@ for cat in MENU.get('categories', []):
 SEG_SPLIT = re.compile(r";|\band\b")
 
 app = Flask(__name__, static_url_path="/static", static_folder="static")
+app.config["SOCK_SERVER_OPTIONS"] = {"ping_interval": 25}
 sock = Sock(app)
 clients = set()
 
@@ -128,12 +129,23 @@ def _notify_n8n(event_type: str, payload: dict):
         app.logger.warning("n8n notify failed: %s", e)
 
 
+def _safe_load_cart(raw: str) -> list:
+    """Decode a cart payload stored in Stripe metadata."""
+    if not raw:
+        return []
+    try:
+        parsed = json.loads(raw)
+        return parsed if isinstance(parsed, list) else []
+    except Exception:
+        return []
+
+
 # ===========================================================================
 # Static / menu
 # ===========================================================================
 @app.route("/")
 def root():
-    return send_from_directory("static", "index.html")
+    return send_from_directory("static", "kds.html")
 
 @app.get('/api/menu')
 def api_menu():
@@ -455,19 +467,25 @@ def api_checkout():
     })
 
     try:
+        cart = body.get('cart', [])
         session = stripe.checkout.Session.create(
             mode='payment',
             line_items=line_items,
             success_url=os.getenv('CHECKOUT_SUCCESS_URL'),
             cancel_url=os.getenv('CHECKOUT_CANCEL_URL'),
-            metadata={'location_id': os.getenv('LOCATION_ID', 'demo')}
+            metadata={
+                'location_id': os.getenv('LOCATION_ID', 'demo'),
+                'source': body.get('source', 'Web'),
+                'table': body.get('table', '-'),
+                'cart_json': json.dumps(cart, separators=(',', ':')),
+            }
         )
         order = {
             'order_id':   session.id[-6:],
             'source':     body.get('source', 'Web'),
             'table':      body.get('table', '-'),
-            'items':      body.get('cart', []),
-            'created_at': datetime.utcnow().isoformat() + 'Z',
+            'items':      cart,
+            'created_at': datetime.now(UTC).isoformat().replace('+00:00', 'Z'),
             'status':     'NEW'
         }
         _deliver_to_kitchen(order)
@@ -522,6 +540,16 @@ def stripe_webhook():
     if event['type'] == 'checkout.session.completed':
         session  = event['data']['object']
         order_id = session['id'][-6:]
+        metadata = session.get('metadata') or {}
+        order = {
+            'order_id':   order_id,
+            'source':     metadata.get('source', 'Web'),
+            'table':      metadata.get('table', '-'),
+            'items':      _safe_load_cart(metadata.get('cart_json', '')),
+            'created_at': datetime.now(UTC).isoformat().replace('+00:00', 'Z'),
+            'status':     'PAID'
+        }
+        _deliver_to_kitchen(order)
         _broadcast_status(order_id, 'PAID')
         _notify_n8n("payment_confirmed", {"order_id": order_id, "session": session['id']})
 

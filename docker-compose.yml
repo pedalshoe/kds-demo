@@ -32,6 +32,8 @@ services:
       CHROMA_DIR: /app/chroma_db
       EMBED_MODEL: nomic-embed-text
       ANONYMIZED_TELEMETRY: "FALSE"
+      GENERIC_TIMEZONE: America/New_York
+      TZ: America/New_York
       N8N_WEBHOOK_URL: http://n8n:5678/webhook/kds-orders
     volumes:
       - chroma_data:/app/chroma_db
@@ -56,6 +58,9 @@ services:
     image: ollama/ollama:latest
     container_name: ollama
     restart: unless-stopped
+    environment:
+      GENERIC_TIMEZONE: America/New_York
+      TZ: America/New_York
     volumes:
       - ollama_models:/root/.ollama
     ports:

@@ -19,10 +19,10 @@ COPY . .
 RUN useradd -m appuser && chown -R appuser /app
 USER appuser
 
-# gunicorn with gevent worker for WebSocket support
+# gunicorn with threaded workers for Flask-Sock WebSocket support
 CMD ["gunicorn", \
-     "--worker-class", "geventwebsocket.gunicorn.workers.GeventWebSocketWorker", \
-     "--workers", "2", \
+     "--workers", "1", \
+     "--threads", "100", \
      "--bind", "0.0.0.0:8000", \
      "--timeout", "120", \
      "--log-level", "info", \

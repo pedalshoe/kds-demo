@@ -24,6 +24,22 @@ Command				What it does
 ./start-docker.sh --logs	Tail all container logs
 ./start-docker.sh --status	Show container states
 
+## Docker + native Ollama
+
+If you want Ollama to run natively on your Mac instead of inside Docker, use:
+
+Command				What it does
+./start-docker-local-ollama.sh		Start Docker services except Ollama
+./start-docker-local-ollama.sh --build	Rebuild kds-app image then start
+./start-docker-local-ollama.sh --clean	Wipe Docker volumes + rebuild + reseed n8n
+./start-docker-local-ollama.sh --stop	Stop Docker services cleanly
+
+This mode expects native Ollama to already be running on `localhost:11434` with:
+
+- `llama3.1`
+- `mistral`
+- `nomic-embed-text`
+
 # Check both models and latency
 curl http://localhost/api/llm/health | python3 -m json.tool
 
@@ -49,19 +65,23 @@ curl -X POST http://localhost/api/chat \
 In a new browser window: Browse to: http://localhost:5678
 
 # Run a test order and watch the n8n web:
-curl -X POST http://localhost:5001/api/order -H 'Content-Type: application/json' -d '{ "order_id":"A123", "source":"Web", "table":"5","items":[ {"name":"Taco al Pastor","qty":2,"mods":["no cheese","extra salsa"]}, {"name":"Churros","qty":1} ] }'
+curl -X POST http://localhost/api/order -H 'Content-Type: application/json' -d '{ "order_id":"A123", "source":"Web", "table":"5","items":[ {"name":"Taco al Pastor","qty":2,"mods":["no cheese","extra salsa"]}, {"name":"Churros","qty":1} ] }'
 
 
 # bring up KDS
-Window 1: http://localhost:5001                    ← KDS kitchen display or: /static/kds.html
-Window 2: http://localhost:5001/static/chat.html   ← chatbot order entry
-Window 3: http://localhost:5001/static/order.html  ← web order form
+Window 1: http://localhost                    ← KDS kitchen display or: /static/kds.html
+Window 2: http://localhost/static/chat.html   ← chatbot order entry
+Window 3: http://localhost/static/order.html  ← web order form
 
 # start Stripe:
-stripe listen --forward-to localhost:5001/webhook/stripe
+stripe listen --forward-to localhost/webhook/stripe
+
+# Important:
+# The Stripe CLI login must match the same test account used by STRIPE_SECRET_KEY
+# in .env, or real checkout events will not reach the local listener.
 
 Test Stripe:
-curl -X POST http://localhost:5001/api/checkout \
+curl -X POST http://localhost/api/checkout \
   -H "Content-Type: application/json" \
   -d '{
     "cart": [
@@ -71,7 +91,7 @@ curl -X POST http://localhost:5001/api/checkout \
     "table": "3"
   }'
 
-# Running the pplication:
+# Running the application:
 Place an order in Window 2 or 3 and watch it appear instantly in Window 1 with a beep.
 
 # Bring down the environment:
