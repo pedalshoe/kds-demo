@@ -31,6 +31,7 @@
       font-family: var(--display);
       min-height: 100vh;
       overflow-x: hidden;
+      scroll-behavior: smooth;
     }
 
     /* ── Header ── */
@@ -137,6 +138,10 @@
       gap: 0.5rem;
     }
 
+    .mobile-nav {
+      display: none;
+    }
+
     .col-dot {
       width: 8px;
       height: 8px;
@@ -159,6 +164,25 @@
       display: flex;
       flex-direction: column;
       gap: 0.75rem;
+    }
+
+    .mobile-col-title {
+      display: none;
+    }
+
+    .mobile-col-link {
+      display: none;
+      margin-left: auto;
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.95rem;
+      line-height: 1;
+      transition: color 0.15s, transform 0.15s;
+    }
+
+    .mobile-col-link:hover {
+      color: var(--text);
+      transform: translateY(-1px);
     }
 
     /* ── Order card ── */
@@ -357,19 +381,177 @@
     }
 
     footer span { color: var(--text-dim); }
+
+    @media (max-width: 860px) {
+      header {
+        height: auto;
+        padding: 0.9rem 1rem;
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.7rem;
+      }
+
+      .header-left,
+      .header-right {
+        width: 100%;
+      }
+
+      .header-left {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.35rem;
+      }
+
+      .logo {
+        font-size: 1.15rem;
+        letter-spacing: 0.12em;
+        line-height: 1.05;
+      }
+
+      .logo span {
+        display: block;
+        margin-top: 0.15rem;
+      }
+
+      .clock {
+        border-left: 0;
+        padding-left: 0;
+        font-size: 0.95rem;
+      }
+
+      .header-right {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 0.5rem 1rem;
+      }
+
+      .stat,
+      #status {
+        font-size: 0.72rem;
+      }
+
+      .mobile-nav {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.45rem;
+        width: 100%;
+      }
+
+      .mobile-nav a {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        min-height: 2.2rem;
+        padding: 0.45rem 0.5rem;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        color: var(--text-dim);
+        text-decoration: none;
+        font-family: var(--mono);
+        font-size: 0.66rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .columns-header {
+        display: none;
+      }
+
+      .board {
+        grid-template-columns: 1fr;
+        gap: 0;
+        background: transparent;
+        min-height: auto;
+      }
+
+      .column {
+        padding: 0;
+        gap: 0.65rem;
+      }
+
+      .column + .column {
+        border-top: 1px solid var(--border);
+      }
+
+      .mobile-col-title {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.8rem 1rem 0.65rem;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+      }
+
+      .mobile-col-link {
+        display: inline-flex;
+        align-items: center;
+      }
+
+      .column .card,
+      .column .empty {
+        margin: 0 0.75rem 0.75rem;
+      }
+
+      .empty {
+        padding: 1.5rem 1rem;
+      }
+
+      .card-header,
+      .items,
+      .card-footer {
+        padding-left: 0.85rem;
+        padding-right: 0.85rem;
+      }
+
+      .card-footer {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+      }
+
+      .btns {
+        width: 100%;
+      }
+
+      button {
+        flex: 1;
+        min-height: 2.3rem;
+      }
+
+      footer {
+        padding: 0.5rem 1rem;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+    }
   </style>
 </head>
-<body>
+<body id="top">
 
 <header>
   <div class="header-left">
-    <div class="logo">KDS <span>/ Kitchen Display</span></div>
+    <div class="logo">KDS-AI <span>/ Kitchen Display</span></div>
     <div class="clock" id="clock">--:--:--</div>
   </div>
   <div class="header-right">
     <div class="stat">Active <strong id="count-active">0</strong></div>
     <div class="stat">Done <strong id="count-done">0</strong></div>
     <div id="status">Connecting…</div>
+  </div>
+  <div class="mobile-nav">
+    <a href="#col-new"><span class="col-dot" style="background:var(--accent)"></span>New Orders</a>
+    <a href="#col-cooking"><span class="col-dot" style="background:var(--yellow)"></span>Cooking</a>
+    <a href="#col-done"><span class="col-dot" style="background:var(--green)"></span>Ready / Done</a>
   </div>
 </header>
 
@@ -381,19 +563,22 @@
 
 <div class="board">
   <div class="column" id="col-new">
+    <div class="mobile-col-title"><span class="col-dot" style="background:var(--accent)"></span>New Orders <a class="mobile-col-link" href="#top" aria-label="Jump to top">↑</a></div>
     <div class="empty" id="empty-new">No new orders</div>
   </div>
   <div class="column" id="col-cooking">
+    <div class="mobile-col-title"><span class="col-dot" style="background:var(--yellow)"></span>Cooking <a class="mobile-col-link" href="#top" aria-label="Jump to top">↑</a></div>
     <div class="empty" id="empty-cooking">Nothing cooking</div>
   </div>
   <div class="column" id="col-done">
+    <div class="mobile-col-title"><span class="col-dot" style="background:var(--green)"></span>Ready / Done <a class="mobile-col-link" href="#top" aria-label="Jump to top">↑</a></div>
     <div class="empty" id="empty-done">Nothing ready</div>
   </div>
 </div>
 
 <footer>
   <span>KDS-AI</span> ·
-  LLM: llama3 + mistral ·
+  LLM: llama3.1 + mistral ·
   RAG: ChromaDB ·
   WS: <span id="ws-url">—</span>
 </footer>
@@ -477,7 +662,7 @@
 
     // Pick column
     let col;
-    if (status === 'NEW')                         col = document.getElementById('col-new');
+    if (status === 'NEW' || status === 'PAID')    col = document.getElementById('col-new');
     else if (status === 'COOKING')                col = document.getElementById('col-cooking');
     else                                          col = document.getElementById('col-done');
 
@@ -531,7 +716,7 @@
     card.querySelector('.btn-done').onclick  = () => sendStatus(orderId, 'DONE');
     card.querySelector('.btn-bump').onclick  = () => { card.remove(); delete orders[orderId]; updateCounts(); };
 
-    col.prepend(card);
+    insertCard(col, card, orders[orderId]);
     setTimeout(() => card.classList.remove('new'), 400);
 
     // start timer
@@ -565,9 +750,45 @@
   function updateCounts() {
     const vals = Object.values(orders);
     document.getElementById('count-active').textContent =
-      vals.filter(o => o.status === 'NEW' || o.status === 'COOKING').length;
+      vals.filter(o => o.status === 'NEW' || o.status === 'PAID' || o.status === 'COOKING').length;
     document.getElementById('count-done').textContent =
-      vals.filter(o => o.status === 'DONE' || o.status === 'READY' || o.status === 'PAID').length;
+      vals.filter(o => o.status === 'DONE' || o.status === 'READY').length;
+  }
+
+  function getColumnRank(orderState) {
+    if (orderState.status === 'PAID') return 0;
+    if (orderState.status === 'NEW') return 1;
+    return 2;
+  }
+
+  function insertCard(col, card, orderState) {
+    const cards = Array.from(col.querySelectorAll('.card'));
+    const nextState = orderState;
+
+    if (!cards.length) {
+      col.appendChild(card);
+      return;
+    }
+
+    for (const existingCard of cards) {
+      const existingState = orders[existingCard.id.replace('card-', '')];
+      if (!existingState) continue;
+
+      const nextRank = getColumnRank(nextState);
+      const existingRank = getColumnRank(existingState);
+
+      if (nextRank < existingRank) {
+        col.insertBefore(card, existingCard);
+        return;
+      }
+
+      if (nextRank === existingRank && nextState.startedAt < existingState.startedAt) {
+        col.insertBefore(card, existingCard);
+        return;
+      }
+    }
+
+    col.appendChild(card);
   }
 
   // ── Inventory alert ────────────────────────────────────────────────────────
