@@ -1,5 +1,5 @@
 {
-  "name": "My workflow",
+  "name": "KDS Order Automation",
   "nodes": [
     {
       "parameters": {
@@ -8,13 +8,13 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "4e349fde-67de-41a8-95ce-a01f78712275",
+      "id": "webhook-receiver",
       "name": "KDS Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
       "position": [
-        -448,
-        128
+        240,
+        300
       ],
       "webhookId": "kds-orders"
     },
@@ -25,11 +25,9 @@
             {
               "conditions": {
                 "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 1
+                  "caseSensitive": false
                 },
+                "combinator": "and",
                 "conditions": [
                   {
                     "leftValue": "={{ $json.body.event }}",
@@ -37,23 +35,16 @@
                     "operator": {
                       "type": "string",
                       "operation": "equals"
-                    },
-                    "id": "0eea7cc2-1ff7-483a-b7e5-568bb46ef6d7"
+                    }
                   }
-                ],
-                "combinator": "and"
+                ]
               },
               "renameOutput": true,
               "outputKey": "new_order"
             },
             {
               "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 1
-                },
+                "combinator": "and",
                 "conditions": [
                   {
                     "leftValue": "={{ $json.body.event }}",
@@ -61,23 +52,16 @@
                     "operator": {
                       "type": "string",
                       "operation": "equals"
-                    },
-                    "id": "b6140cec-9414-4093-bf44-84a73caa3d56"
+                    }
                   }
-                ],
-                "combinator": "and"
+                ]
               },
               "renameOutput": true,
               "outputKey": "payment_confirmed"
             },
             {
               "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 1
-                },
+                "combinator": "and",
                 "conditions": [
                   {
                     "leftValue": "={{ $json.body.event }}",
@@ -85,121 +69,104 @@
                     "operator": {
                       "type": "string",
                       "operation": "equals"
-                    },
-                    "id": "6b62bc51-c858-4449-83ab-dc12c4bdea88"
+                    }
                   }
-                ],
-                "combinator": "and"
+                ]
               },
               "renameOutput": true,
               "outputKey": "checkout_started"
             }
           ]
-        },
-        "options": {}
+        }
       },
-      "id": "0dd1519f-0ca9-4b09-8fe5-b27ca4299d8b",
+      "id": "event-router",
       "name": "Route by Event",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
       "position": [
-        -224,
-        128
+        460,
+        300
       ]
     },
     {
       "parameters": {
-        "jsCode": "const order = $input.first().json.body.data;\nconst items = (order.items || []).map(i => `  • ${i.qty || 1}x ${i.name || i.id}`).join('\\n');\nreturn [{\n  json: {\n    order_id:   order.order_id,\n    table:      order.table || '-',\n    source:     order.source || 'Unknown',\n    items_text: items,\n    created_at: order.created_at,\n    slack_text: `🆕 *New Order #${order.order_id}* (Table ${order.table || '-'}, via ${order.source})\\n${items}`\n  }\n}];"
+        "jsCode": "const order = $input.first().json.body.data;\nconst items = (order.items || []).map(i => `  \u2022 ${i.qty || 1}x ${i.name || i.id}`).join('\\n');\nreturn [{\n  json: {\n    order_id:   order.order_id,\n    table:      order.table || '-',\n    source:     order.source || 'Unknown',\n    items_text: items,\n    created_at: order.created_at,\n    slack_text: `\ud83c\udd95 *New Order #${order.order_id}* (Table ${order.table || '-'}, via ${order.source})\\n${items}`\n  }\n}];"
       },
-      "id": "47cf8607-e5f7-48ed-af5f-392615cb2d56",
+      "id": "format-new-order",
       "name": "Format New Order",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        0,
-        0
+        680,
+        180
       ]
     },
     {
       "parameters": {
-        "jsCode": "const d = $input.first().json.body.data;\nreturn [{\n  json: {\n    order_id:   d.order_id,\n    session_id: d.session,\n    slack_text: `✅ *Payment Confirmed* — Order #${d.order_id} is paid. Kitchen: please prioritize.`\n  }\n}];"
+        "jsCode": "const d = $input.first().json.body.data;\nreturn [{\n  json: {\n    order_id:   d.order_id,\n    session_id: d.session,\n    slack_text: `\u2705 *Payment Confirmed* \u2014 Order #${d.order_id} is paid. Kitchen: please prioritize.`\n  }\n}];"
       },
-      "id": "53301d7d-770b-4112-baf2-515edc98b6e2",
+      "id": "format-payment",
       "name": "Format Payment",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        0,
-        160
+        680,
+        340
       ]
     },
     {
       "parameters": {
-        "select": "channel",
-        "channelId": {
+        "resource": "message",
+        "operation": "post",
+        "channel": {
           "__rl": true,
-          "value": "C0B2DV6GMS9",
-          "mode": "list",
-          "cachedResultName": "ai-kds"
+          "value": "ai-kds",
+          "mode": "name"
         },
         "text": "={{ $json.slack_text }}",
         "otherOptions": {}
       },
-      "id": "d30301d1-aa6e-42c3-b431-7548ea5078ab",
+      "id": "slack-new-order",
       "name": "Slack: New Order",
       "type": "n8n-nodes-base.slack",
       "typeVersion": 2,
       "position": [
-        224,
-        0
-      ],
-      "webhookId": "014ab0f7-51cc-444d-b11d-a49dc4681c3b",
-      "credentials": {
-        "slackApi": {
-          "id": "PROOXdqpO9tdNyeM",
-          "name": "Slack account"
-        }
-      }
+        900,
+        180
+      ]
     },
     {
       "parameters": {
-        "select": "channel",
-        "channelId": {
+        "resource": "message",
+        "operation": "post",
+        "channel": {
           "__rl": true,
-          "value": "C0B2DV6GMS9",
-          "mode": "list",
-          "cachedResultName": "ai-kds"
+          "value": "ai-kds",
+          "mode": "name"
         },
         "text": "={{ $json.slack_text }}",
         "otherOptions": {}
       },
-      "id": "3937e55f-4085-42ea-9b72-82e07661f251",
+      "id": "slack-payment",
       "name": "Slack: Payment Confirmed",
       "type": "n8n-nodes-base.slack",
       "typeVersion": 2,
       "position": [
-        224,
-        160
-      ],
-      "webhookId": "e73f82da-2caa-44f1-8b0f-1347b9b21c86",
-      "credentials": {
-        "slackApi": {
-          "id": "PROOXdqpO9tdNyeM",
-          "name": "Slack account"
-        }
-      }
+        900,
+        340
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const order = $input.first().json;\nconst items = order.items_text || '';\nreturn [{\n  json: {\n    to:      'services@worlwin.com',\n    subject: `New KDS Order #${order.order_id} — Table ${order.table||'-'}`,\n    html:    `<h2>New Order #${order.order_id}</h2><p>Table: ${order.table||'-'} | Source: ${order.source}</p><ul>${items}</ul><p><small>${order.created_at}</small></p>`\n  }\n}];"
+        "jsCode": "const order = $input.first().json;\nconst items = order.items_text || '';\nreturn [{\n  json: {\n    to:      'services@worlwin.com',\n    subject: `New KDS Order #${order.order_id} \u2014 Table ${order.table||'-'}`,\n    html:    `<h2>New Order #${order.order_id}</h2><p>Table: ${order.table||'-'} | Source: ${order.source}</p><ul>${items}</ul><p><small>${order.created_at}</small></p>`\n  }\n}];"
       },
-      "id": "6325f87f-d0c7-48d8-a106-1c752820e6a9",
+      "id": "format-email",
       "name": "Format Email",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        224,
-        320
+        900,
+        500
       ]
     },
     {
@@ -207,23 +174,17 @@
         "fromEmail": "services@worlwin.com",
         "toEmail": "={{ $json.to }}",
         "subject": "={{ $json.subject }}",
-        "options": {}
+        "emailType": "html",
+        "message": "={{ $json.html }}"
       },
-      "id": "f9bc80fc-8902-49b7-a017-518a3317840c",
+      "id": "send-email",
       "name": "Email: New Order",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2,
       "position": [
-        448,
-        320
-      ],
-      "webhookId": "52aa737f-d708-41b0-85cb-57d25bb6743d",
-      "credentials": {
-        "smtp": {
-          "id": "J4fm4GR9OvvEO4I5",
-          "name": "SMTP account"
-        }
-      }
+        1120,
+        500
+      ]
     },
     {
       "parameters": {
@@ -239,39 +200,33 @@
           ]
         },
         "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
-            {}
-          ]
-        },
-        "options": {}
+        "contentType": "json",
+        "body": "={\n  \"event\": \"order_ready\",\n  \"data\":  { \"order_id\": \"{{ $json.order_id }}\" }\n}"
       },
-      "id": "e652d708-6cf6-4ec7-9495-72ba3a724b52",
+      "id": "notify-kds-ready",
       "name": "KDS: Mark Order Ready",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        224,
-        480
+        900,
+        660
       ]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={ \"ok\": true, \"received\": \"{{ $('KDS Webhook').first().json.body.event }}\" }",
-        "options": {}
+        "responseBody": "={ \"ok\": true, \"received\": \"{{ $('KDS Webhook').first().json.body.event }}\" }"
       },
-      "id": "4b9014a2-e66f-4b99-b282-8aabc1dc50ba",
+      "id": "webhook-response",
       "name": "Respond OK",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        448,
-        128
+        1120,
+        300
       ]
     }
   ],
-  "pinData": {},
   "connections": {
     "KDS Webhook": {
       "main": [
@@ -299,7 +254,8 @@
             "type": "main",
             "index": 0
           }
-        ]
+        ],
+        []
       ]
     },
     "Format New Order": {
@@ -368,16 +324,14 @@
       ]
     }
   },
-  "active": true,
   "settings": {
-    "executionOrder": "v1",
-    "binaryMode": "separate"
+    "executionOrder": "v1"
   },
-  "versionId": "db244478-bd83-4cb5-a804-cff604a72f3e",
-  "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "f9068e60b9020734e37d4c169c3533a0b0343ac3ba33837eab37a0ba0ec7ed52"
-  },
-  "id": "CQXliOjFeNMOWYmV",
-  "tags": []
+  "staticData": null,
+  "tags": [
+    "kds",
+    "orders",
+    "llm-demo"
+  ],
+  "pinData": {}
 }
