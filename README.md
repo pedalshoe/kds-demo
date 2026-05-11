@@ -1,8 +1,62 @@
 # kds-demo
-# Tech stack
-React - javascript/html5/css
-Python -  Flask
 
+# Tech Stack - llm integration
+ - Two Ollama models routing correctly
+ - RAG retrieving menu context
+ - Intent classification
+ - Structured order extraction
+ - n8n automation firing
+ - Slack notifications
+ - Docker production stack
+ - pytest suite
+
+# With Docker Run
+docker compose up -d
+
+# Check both models and latency
+curl http://localhost/api/llm/health | python3 -m json.tool
+
+# RAG vectorstore - confirm menu is indexed
+curl http://localhost/api/rag/stats | python3 -m json.tool
+
+# Test mistral + RAG (question intent)
+curl -X POST http://localhost/api/llm/chat \
+  -H "Content-Type: application/json" \
+  -d '{"text": "do you have any vegetarian options?"}' | python3 -m json.tool
+
+# Test llama3 (order intent)
+curl -X POST http://localhost/api/llm/chat \
+  -H "Content-Type: application/json" \
+  -d '{"text": "I would like two tacos al pastor please"}' | python3 -m json.tool
+
+# Test full order flow through chat + n8n notification
+curl -X POST http://localhost/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"text": "two tacos al pastor and one agua fresca"}' | python3 -m json.tool
+
+# bring up n8n automation interface:
+In a new browser window: Browse to: http://localhost:5678
+
+
+# bring up a window to show the KDS ordering interface:
+In a new browser window, Browse to: http://localhost:5001
+
+# bring up the KDS
+In a new browser window, Browse to: http://localhost:5001/static/kds.html
+
+
+# Without Docker Run
+
+
+
+# Tech stack - Orignal
+React - javascript/html5/css
+Python - Flask
+
+
+
+
+React Startup and demo
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python app.py

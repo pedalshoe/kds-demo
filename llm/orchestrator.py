@@ -17,6 +17,8 @@ import json
 import logging
 import os
 import time
+import urllib.error
+import urllib.request
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Optional
@@ -202,18 +204,33 @@ class KDSOrchestrator:
             return self._handle_chat(text, timer)
 
     def health_check(self) -> dict:
-        """Ping both models; return status dict."""
+        """Check Ollama responsiveness and whether the required models are installed."""
+        t0 = time.perf_counter()
+        try:
+            with urllib.request.urlopen(f"{OLLAMA_BASE_URL}/api/tags", timeout=5) as resp:
+                payload = json.loads(resp.read().decode("utf-8"))
+        except Exception as e:
+            return {
+                MODEL_ORDER: {"status": "error", "detail": str(e)},
+                MODEL_RAG: {"status": "error", "detail": str(e)},
+            }
+
+        latency_ms = int((time.perf_counter() - t0) * 1000)
+        installed = {
+            model.get("name", "").split(":", 1)[0]
+            for model in payload.get("models", [])
+        }
+
         results = {}
-        for name, llm in [(MODEL_ORDER, self.llm_order), (MODEL_RAG, self.llm_rag)]:
-            try:
-                t0 = time.perf_counter()
-                llm.invoke("ping")
+        for name in (MODEL_ORDER, MODEL_RAG):
+            if name in installed:
+                results[name] = {"status": "ok", "latency_ms": latency_ms}
+            else:
                 results[name] = {
-                    "status": "ok",
-                    "latency_ms": int((time.perf_counter() - t0) * 1000)
+                    "status": "missing",
+                    "detail": f'model "{name}" not installed',
+                    "latency_ms": latency_ms,
                 }
-            except Exception as e:
-                results[name] = {"status": "error", "detail": str(e)}
         return results
 
     # ------------------------------------------------------------------

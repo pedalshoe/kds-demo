@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KDS — Kitchen Display</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0a0c0e;
+      --surface:   #111418;
+      --border:    #1e2530;
+      --accent:    #f97316;
+      --green:     #22c55e;
+      --yellow:    #eab308;
+      --red:       #ef4444;
+      --blue:      #3b82f6;
+      --muted:     #4b5563;
+      --text:      #e2e8f0;
+      --text-dim:  #94a3b8;
+      --mono:      'Share Tech Mono', monospace;
+      --display:   'Barlow Condensed', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--display);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      height: 56px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .logo {
+      font-size: 1.4rem;
+      font-weight: 900;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .logo span {
+      color: var(--text-dim);
+      font-weight: 400;
+    }
+
+    .clock {
+      font-family: var(--mono);
+      font-size: 1.1rem;
+      color: var(--text-dim);
+      border-left: 1px solid var(--border);
+      padding-left: 1rem;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    #status {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    #status::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: background 0.3s;
+    }
+
+    #status.connected::before  { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    #status.error::before      { background: var(--red); }
+
+    .stat {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .stat strong {
+      color: var(--accent);
+      font-size: 1rem;
+    }
+
+    /* ── Column headers ── */
+    .columns-header {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .col-header {
+      background: var(--surface);
+      padding: 0.6rem 1.5rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .col-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    /* ── Orders grid ── */
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--border);
+      min-height: calc(100vh - 57px - 37px);
+      align-items: start;
+    }
+
+    .column {
+      background: var(--bg);
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    /* ── Order card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      transition: border-color 0.2s, transform 0.15s;
+      position: relative;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: var(--accent);
+      transition: background 0.3s;
+    }
+
+    .card.COOKING::before { background: var(--yellow); }
+    .card.DONE::before    { background: var(--green); }
+    .card.PAID::before    { background: var(--blue); }
+    .card.CANCELLED::before { background: var(--red); }
+
+    .card.new {
+      animation: slideIn 0.3s ease;
+      border-color: var(--accent);
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .card-header {
+      padding: 0.6rem 0.75rem 0.5rem;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .order-id {
+      font-size: 1.3rem;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .badges {
+      display: flex;
+      gap: 0.35rem;
+      margin-top: 0.3rem;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      padding: 0.15rem 0.4rem;
+      border-radius: 2px;
+      background: var(--border);
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+    }
+
+    .badge.source { background: #1a2030; color: var(--blue); }
+    .badge.table  { background: #1a1a10; color: var(--yellow); }
+
+    .pill {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.5rem;
+      border-radius: 2px;
+      white-space: nowrap;
+    }
+
+    .pill.NEW      { background: #1a1008; color: var(--accent); border: 1px solid var(--accent); }
+    .pill.COOKING  { background: #1a1800; color: var(--yellow); border: 1px solid var(--yellow); }
+    .pill.DONE     { background: #081a08; color: var(--green);  border: 1px solid var(--green); }
+    .pill.PAID     { background: #08101a; color: var(--blue);   border: 1px solid var(--blue); }
+    .pill.READY    { background: #081a08; color: var(--green);  border: 1px solid var(--green); }
+    .pill.CANCELLED{ background: #1a0808; color: var(--red);    border: 1px solid var(--red); }
+
+    /* ── Items ── */
+    .items {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.9rem;
+      line-height: 1.7;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .item-row {
+      display: flex;
+      gap: 0.4rem;
+      align-items: baseline;
+    }
+
+    .item-qty {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: var(--accent);
+      min-width: 1.5rem;
+    }
+
+    .item-name { font-weight: 600; }
+
+    .item-mods {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      font-style: italic;
+    }
+
+    /* ── Card footer ── */
+    .card-footer {
+      padding: 0.5rem 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .timestamp {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+
+    .timer {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--text-dim);
+    }
+
+    .timer.warn  { color: var(--yellow); }
+    .timer.alert { color: var(--red); animation: pulse 1s infinite; }
+
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+
+    .btns {
+      display: flex;
+      gap: 0.35rem;
+    }
+
+    button {
+      font-family: var(--display);
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.25rem 0.6rem;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      background: transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    button:hover { border-color: var(--text-dim); color: var(--text); }
+
+    .btn-start:hover { border-color: var(--yellow); color: var(--yellow); }
+    .btn-done:hover  { border-color: var(--green);  color: var(--green); }
+    .btn-bump        { color: var(--muted); }
+    .btn-bump:hover  { border-color: var(--red); color: var(--red); }
+
+    /* ── Empty state ── */
+    .empty {
+      padding: 3rem 1rem;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.8rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-family: var(--mono);
+    }
+
+    /* ── Footer bar ── */
+    footer {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 0.4rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+    }
+
+    footer span { color: var(--text-dim); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="logo">KDS <span>/ Kitchen Display</span></div>
+    <div class="clock" id="clock">--:--:--</div>
+  </div>
+  <div class="header-right">
+    <div class="stat">Active <strong id="count-active">0</strong></div>
+    <div class="stat">Done <strong id="count-done">0</strong></div>
+    <div id="status">Connecting…</div>
+  </div>
+</header>
+
+<div class="columns-header">
+  <div class="col-header"><span class="col-dot" style="background:var(--accent)"></span>New Orders</div>
+  <div class="col-header"><span class="col-dot" style="background:var(--yellow)"></span>Cooking</div>
+  <div class="col-header"><span class="col-dot" style="background:var(--green)"></span>Ready / Done</div>
+</div>
+
+<div class="board">
+  <div class="column" id="col-new">
+    <div class="empty" id="empty-new">No new orders</div>
+  </div>
+  <div class="column" id="col-cooking">
+    <div class="empty" id="empty-cooking">Nothing cooking</div>
+  </div>
+  <div class="column" id="col-done">
+    <div class="empty" id="empty-done">Nothing ready</div>
+  </div>
+</div>
+
+<footer>
+  <span>KDS-AI</span> ·
+  LLM: llama3 + mistral ·
+  RAG: ChromaDB ·
+  WS: <span id="ws-url">—</span>
+</footer>
+
+<script>
+  // ── Clock ──────────────────────────────────────────────────────────────────
+  const clockEl = document.getElementById('clock');
+  setInterval(() => {
+    clockEl.textContent = new Date().toLocaleTimeString('en-US', { hour12: false });
+  }, 1000);
+
+  // ── WebSocket ──────────────────────────────────────────────────────────────
+  const wsUrl = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
+  document.getElementById('ws-url').textContent = wsUrl;
+
+  const statusEl = document.getElementById('status');
+  let ws;
+
+  function connect() {
+    ws = new WebSocket(wsUrl);
+    ws.onopen = () => {
+      statusEl.textContent = 'Connected';
+      statusEl.className = 'connected';
+    };
+    ws.onclose = () => {
+      statusEl.textContent = 'Reconnecting…';
+      statusEl.className = '';
+      setTimeout(connect, 2000);
+    };
+    ws.onerror = () => {
+      statusEl.textContent = 'Error';
+      statusEl.className = 'error';
+    };
+    ws.onmessage = (ev) => {
+      const msg = JSON.parse(ev.data || '{}');
+      if (msg.type === 'order' && msg.data)         { addOrderCard(msg.data); playBeep(); }
+      else if (msg.type === 'status' && msg.data)   { moveCard(msg.data.order_id, msg.data.status); }
+      else if (msg.type === 'inventory_alert')       { showAlert(msg.data); }
+    };
+  }
+  connect();
+
+  // ── Audio beep ─────────────────────────────────────────────────────────────
+  function playBeep() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(880, ctx.currentTime);
+      g.gain.setValueAtTime(0.0001, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.3);
+      o.connect(g).connect(ctx.destination);
+      o.start();
+      o.stop(ctx.currentTime + 0.31);
+    } catch(e) {}
+  }
+
+  // ── Order state ────────────────────────────────────────────────────────────
+  const orders = {}; // order_id → { data, status, startedAt }
+
+  function addOrderCard(order) {
+    if (orders[order.order_id]) return; // dedupe
+    orders[order.order_id] = { data: order, status: order.status || 'NEW', startedAt: Date.now() };
+    renderCard(order.order_id);
+    updateCounts();
+  }
+
+  function moveCard(orderId, status) {
+    if (!orders[orderId]) return;
+    orders[orderId].status = status;
+    const existing = document.getElementById(`card-${orderId}`);
+    if (existing) existing.remove();
+    renderCard(orderId);
+    updateCounts();
+  }
+
+  function renderCard(orderId) {
+    const { data: order, status, startedAt } = orders[orderId];
+
+    // Pick column
+    let col;
+    if (status === 'NEW')                         col = document.getElementById('col-new');
+    else if (status === 'COOKING')                col = document.getElementById('col-cooking');
+    else                                          col = document.getElementById('col-done');
+
+    // Hide empty message
+    col.querySelectorAll('.empty').forEach(e => e.style.display = 'none');
+
+    const card = document.createElement('div');
+    card.className = `card new ${status}`;
+    card.id = `card-${orderId}`;
+
+    const mods = (it) => {
+      const ex = (it.mods?.exclusions || []).map(m => `no ${m}`);
+      const ad = (it.mods?.additions  || []);
+      return [...ex, ...ad].join(', ');
+    };
+
+    const itemsHtml = (order.items || []).map(it => `
+      <div class="item-row">
+        <span class="item-qty">${it.qty || 1}×</span>
+        <span class="item-name">${it.name || it.id}</span>
+        ${mods(it) ? `<span class="item-mods">(${mods(it)})</span>` : ''}
+      </div>`).join('');
+
+    const ts = new Date(order.created_at || Date.now()).toLocaleTimeString('en-US', { hour12: false });
+
+    card.innerHTML = `
+      <div class="card-header">
+        <div>
+          <div class="order-id">#${order.order_id}</div>
+          <div class="badges">
+            <span class="badge source">${order.source || 'POS'}</span>
+            <span class="badge table">TBL ${order.table || '-'}</span>
+          </div>
+        </div>
+        <div class="pill ${status}">${status}</div>
+      </div>
+      <div class="items">${itemsHtml || '<div class="item-row"><span class="item-name" style="color:var(--muted)">No items</span></div>'}</div>
+      <div class="card-footer">
+        <div>
+          <div class="timestamp">${ts}</div>
+          <div class="timer" id="timer-${orderId}">0:00</div>
+        </div>
+        <div class="btns">
+          <button class="btn-start">Start</button>
+          <button class="btn-done">Done</button>
+          <button class="btn-bump">Bump</button>
+        </div>
+      </div>`;
+
+    card.querySelector('.btn-start').onclick = () => sendStatus(orderId, 'COOKING');
+    card.querySelector('.btn-done').onclick  = () => sendStatus(orderId, 'DONE');
+    card.querySelector('.btn-bump').onclick  = () => { card.remove(); delete orders[orderId]; updateCounts(); };
+
+    col.prepend(card);
+    setTimeout(() => card.classList.remove('new'), 400);
+
+    // start timer
+    startTimer(orderId, startedAt);
+  }
+
+  // ── Elapsed timers ─────────────────────────────────────────────────────────
+  const timers = {};
+  function startTimer(orderId, startedAt) {
+    if (timers[orderId]) clearInterval(timers[orderId]);
+    timers[orderId] = setInterval(() => {
+      const el = document.getElementById(`timer-${orderId}`);
+      if (!el) { clearInterval(timers[orderId]); return; }
+      const secs = Math.floor((Date.now() - startedAt) / 1000);
+      const m = Math.floor(secs / 60);
+      const s = secs % 60;
+      el.textContent = `${m}:${String(s).padStart(2,'0')}`;
+      el.className = 'timer' + (secs > 600 ? ' alert' : secs > 300 ? ' warn' : '');
+    }, 1000);
+  }
+
+  // ── Send status via WebSocket ──────────────────────────────────────────────
+  function sendStatus(orderId, status) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'status', order_id: orderId, status }));
+    }
+    moveCard(orderId, status);
+  }
+
+  // ── Counts ─────────────────────────────────────────────────────────────────
+  function updateCounts() {
+    const vals = Object.values(orders);
+    document.getElementById('count-active').textContent =
+      vals.filter(o => o.status === 'NEW' || o.status === 'COOKING').length;
+    document.getElementById('count-done').textContent =
+      vals.filter(o => o.status === 'DONE' || o.status === 'READY' || o.status === 'PAID').length;
+  }
+
+  // ── Inventory alert ────────────────────────────────────────────────────────
+  function showAlert(data) {
+    const bar = document.createElement('div');
+    bar.style.cssText = `
+      position:fixed; top:56px; left:0; right:0; z-index:200;
+      background:var(--red); color:#fff; text-align:center;
+      padding:0.5rem; font-family:var(--mono); font-size:0.8rem;
+      letter-spacing:0.1em; text-transform:uppercase;`;
+    bar.textContent = `⚠ Inventory Alert: ${data.message || JSON.stringify(data)}`;
+    document.body.appendChild(bar);
+    setTimeout(() => bar.remove(), 8000);
+  }
+</script>
+</body>
+</html>
