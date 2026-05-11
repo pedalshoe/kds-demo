@@ -5,7 +5,7 @@
 #
 # Services:
 #   kds-app   — Flask / gunicorn (port 8000 internal, 80 via nginx)
-#   ollama    — LLM server (llama3 + mistral + nomic-embed-text)
+#   ollama    — LLM server (llama3.1 + mistral + nomic-embed-text)
 #   chromadb  — RAG vector store
 #   nginx     — Reverse proxy + WebSocket (port 80)
 #   n8n       — Workflow automation (port 5678)
@@ -33,10 +33,11 @@ NC='\033[0m'
 
 # ── Config ────────────────────────────────────────────────────────────────────
 COMPOSE_FILE="docker-compose.yml"
-MODELS=("llama3" "mistral" "nomic-embed-text")
+MODELS=("llama3.1" "mistral" "nomic-embed-text")
 APP_PORT=80
 N8N_PORT=5678
 OLLAMA_PORT=11434
+N8N_WORKFLOW_FILE="/home/node/.n8n/workflows/kds_workflow.json"
 
 # ── Flags ─────────────────────────────────────────────────────────────────────
 BUILD=false
@@ -61,6 +62,26 @@ success() { echo -e "${GREEN}[✓]${NC} $1"; }
 warn()    { echo -e "${YELLOW}[!]${NC} $1"; }
 error()   { echo -e "${RED}[✗]${NC} $1"; exit 1; }
 header()  { echo -e "\n${BOLD}${BLUE}── $1 ──${NC}"; }
+
+seed_n8n_workflow() {
+  if [ ! -f "./n8n/kds_workflow.json" ]; then
+    warn "n8n/kds_workflow.json not found — skipping workflow import"
+    return 0
+  fi
+
+  header "Seeding n8n workflow"
+  log "Importing n8n/kds_workflow.json into a clean n8n database..."
+  docker compose exec -u node n8n n8n import:workflow --input="$N8N_WORKFLOW_FILE"
+
+  log "Activating imported workflow..."
+  docker compose exec -u node n8n n8n update:workflow --all --active=true
+
+  log "Restarting n8n so imported workflow activation takes effect..."
+  docker compose restart n8n
+  sleep 3
+
+  success "n8n workflow imported from n8n/kds_workflow.json"
+}
 
 wait_healthy() {
   local service=$1
@@ -181,6 +202,10 @@ header "Starting core services"
 log "Bringing up: chromadb, n8n..."
 docker compose up -d chromadb n8n
 success "chromadb and n8n started"
+
+if $CLEAN; then
+  seed_n8n_workflow
+fi
 
 log "Bringing up: ollama..."
 docker compose up -d ollama
